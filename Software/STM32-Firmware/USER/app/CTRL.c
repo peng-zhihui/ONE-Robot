@@ -1,0 +1,80 @@
+#include "CTRL.h"
+
+CTRL    CTRL_AngleX, CTRL_AngleY, CTRL_SpeedX, CTRL_SpeedY;
+double  RELAX_ANGLEX    = -5.0, RELAX_ANGLEY = 5.5;
+int16_t DZ      = 50;
+
+void CTRL_compute_AngleX(void)
+{
+    double  error = compAngleX - CTRL_AngleX.Setpoint;
+
+    CTRL_AngleX.Output = CTRL_AngleX.q1 * error ;
+    CTRL_AngleX.Output += CTRL_AngleX.q3 * data_convert[4];
+
+    if(CTRL_AngleX.Output > 1000)
+    {
+        CTRL_AngleX.Output = 1000;
+    }
+    else if(CTRL_AngleX.Output < -1000)
+    {
+        CTRL_AngleX.Output = -1000;
+    }
+}
+
+void CTRL_compute_SpeedX(void)
+{
+    CTRL_SpeedX.Output = CTRL_SpeedX.q1 * SpeedX;
+    CTRL_SpeedX.Output += CTRL_SpeedX.q2 * get_ENC2_Count();
+
+    if(CTRL_SpeedX.Output > 5)
+    {
+        CTRL_SpeedX.Output = 5;
+    }
+    else if(CTRL_SpeedX.Output < -5)
+    {
+        CTRL_SpeedX.Output = -5;
+    }
+
+    CTRL_AngleX.Setpoint = RELAX_ANGLEX + CTRL_SpeedX.Output;
+    //printf("%.2f\n", CTRL_SpeedX.Output);
+}
+
+/********************************驱动角度环********************************/
+void CTRL_compute_AngleY(void)
+{
+    double  error = compAngleY - CTRL_AngleY.Setpoint;
+
+    CTRL_AngleY.Output = CTRL_AngleY.q1 * error;
+    CTRL_AngleY.Output += CTRL_AngleY.q3 * data_convert[3];
+
+    if(CTRL_AngleY.Output > 0)
+    {
+        CTRL_AngleY.Output += DZ;
+    }
+    else
+    {
+        CTRL_AngleY.Output -= DZ;
+    }
+}
+
+/********************************驱动速度环********************************/
+void CTRL_compute_SpeedY(void)
+{
+    double error = SpeedY - CTRL_SpeedY.Setpoint;
+    CTRL_SpeedY.Integral += error;
+    CTRL_SpeedY.Output = CTRL_SpeedY.q1 * SpeedY ;
+    CTRL_SpeedY.Output += CTRL_SpeedY.q2 * CTRL_SpeedY.Integral; //get_ENC1_Count();
+
+    if(CTRL_SpeedY.Output > 10)
+    {
+        CTRL_SpeedY.Output = 10;
+    }
+    else if(CTRL_SpeedY.Output < -10)
+    {
+        CTRL_SpeedY.Output = -10;
+    }
+
+    CTRL_AngleY.Setpoint = RELAX_ANGLEY - CTRL_SpeedY.Output;
+    //printf("%.2f\n",SpeedY);
+}
+
